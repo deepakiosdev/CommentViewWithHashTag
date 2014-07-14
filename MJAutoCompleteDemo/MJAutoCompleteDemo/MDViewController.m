@@ -62,6 +62,79 @@
 
 #pragma mark - UITextView Delegate methods
 
+- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
+{
+ 
+    
+    //[self.autoCompleteMgr updateTextView:textView changeTextInRange:range replacementText:text];
+    
+    NSLog(@"textView.text:%@ \n range:%@, \n text:%@ ",textView.text, NSStringFromRange(range), text);
+    
+   NSRange hotWordRange;
+    NSDictionary *dict;
+    for (dict in self.autoCompleteMgr.rangesOfSelectedHotWords) {
+        hotWordRange = [[dict objectForKey:@"range"] rangeValue];
+        
+        NSRange intersection = NSIntersectionRange(hotWordRange, range);
+        
+        NSLog(@"hotWordRange :%@ \n intersection:%@",NSStringFromRange(hotWordRange),NSStringFromRange(intersection));
+        
+        if (NSIntersectionRange(hotWordRange, range).length <= 0)
+        {
+            NSLog(@"Ranges do not intersect");
+            
+        } else {
+            NSLog(@"Intersection = %@", NSStringFromRange(intersection));
+            NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc]initWithString:textView.text];
+            
+            [attributedString removeAttribute:NSBackgroundColorAttributeName range:hotWordRange];
+            [attributedString removeAttribute:NSForegroundColorAttributeName range:hotWordRange];
+            NSString *result =  [textView.text stringByReplacingCharactersInRange:hotWordRange withString:@""];
+            textView.attributedText = attributedString;
+
+            textView.text = result;
+            NSLog(@"----textView.text:%@ , \n result:%@",textView.text, result);
+            
+            NSLog(@"rangesOfSelectedHotWords:%d",self.autoCompleteMgr.rangesOfSelectedHotWords.count);
+            [self.autoCompleteMgr.rangesOfSelectedHotWords removeObject:dict];
+            
+            NSLog(@"rangesOfSelectedHotWords:%d",self.autoCompleteMgr.rangesOfSelectedHotWords.count);
+            [self highlightHotWordsInTextView:textView];
+            }
+
+        //[self highlightHotWordsInTextView:textView];
+        NSRange myRange = range;
+        NSLog(@"----- range:%@, \n hotWordRange:%@ ", NSStringFromRange(myRange), NSStringFromRange(hotWordRange));
+
+        myRange.location -=2;
+        NSLog(@"------- range:%@, \n hotWordRange:%@ ", NSStringFromRange(myRange), NSStringFromRange(hotWordRange));
+
+        if (NSIntersectionRange(hotWordRange, myRange).length <= 0)
+        {
+        } else{
+            NSLog(@"M right range:%@ ", NSStringFromRange(myRange));
+            [self highlightHotWordsInTextView:textView];
+        }
+    }
+     return YES;
+}
+
+- (void)highlightHotWordsInTextView:(UITextView *)textView
+{
+    NSRange range;
+    NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc]initWithString:textView.text];
+    for (NSDictionary *dict in self.autoCompleteMgr.rangesOfSelectedHotWords) {
+        range = [[dict objectForKey:@"range"] rangeValue];
+        [attributedString addAttribute:NSBackgroundColorAttributeName
+                                     value:[UIColor redColor]
+                                     range:range];
+        [attributedString addAttribute:NSForegroundColorAttributeName
+                                     value:[UIColor whiteColor]
+                                     range:range];
+    }
+    textView.attributedText = attributedString;
+}
+
 - (void)textViewDidChange:(UITextView *)textView
 {
     [self.autoCompleteMgr processString:textView.text];
@@ -137,7 +210,20 @@
 
 - (void)autoCompleteManager:(MJAutoCompleteManager *)acManager shouldUpdateToText:(NSString *)newText
 {
+    
     self.textView.text = newText;
+    NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc]initWithString:self.textView.text];
+    NSRange range;
+    for (NSDictionary *dict in acManager.rangesOfSelectedHotWords) {
+        range = [[dict objectForKey:@"range"] rangeValue];
+        [attributedString addAttribute:NSBackgroundColorAttributeName
+                       value:[UIColor redColor]
+                       range:range];
+        [attributedString addAttribute:NSForegroundColorAttributeName
+                                 value:[UIColor whiteColor]
+                                 range:range];
+    }
+    self.textView.attributedText = attributedString;
 }
 
 #pragma mark -

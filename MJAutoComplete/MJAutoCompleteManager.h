@@ -83,6 +83,8 @@ typedef void(^MJAutoCompleteListCallback)(NSArray* list);
 
 @interface MJAutoCompleteManager : NSObject
 
+@property (strong) NSMutableArray *rangesOfSelectedHotWords;
+
 /*=== COMPONENT SETUP ===*/
 @property (weak, nonatomic) IBOutlet id<MJAutoCompleteManagerDataSource> dataSource;
 @property (weak, nonatomic) IBOutlet id<MJAutoCompleteManagerDelegate> delegate;
@@ -102,5 +104,7 @@ typedef void(^MJAutoCompleteListCallback)(NSArray* list);
 - (void)removeAllAutoCompleteTriggers;
 /** Send the string as it is typed by the user, and the autoComplete table will be displayed when a delimiter is found at the end of the string **/
 - (void)processString:(NSString *)string;
+
+- (void)updateTextView:(UITextView *)textView changeTextInRange:(NSRange)range replacementText:(NSString *)text;
 
 @end

@@ -32,6 +32,8 @@
         self.triggerSet = [NSMutableSet setWithCapacity:5];
         
         _autoCompleteTC = [[MJAutoCompleteTC alloc] initWithDelegate:self];
+        _rangesOfSelectedHotWords = [[NSMutableArray alloc] init];
+
     }
     return self;
 }
@@ -164,6 +166,10 @@
     NSInteger offset = [autoCompleteString hasPrefix:delimiter] ? delimiter.length : 0;
     NSInteger index = NSMaxRange(dlRange) - offset;
     
+    dlRange.length = autoCompleteString.length;
+    dlRange.location +=1;
+    [_rangesOfSelectedHotWords addObject:@{@"hotWord": autoCompleteString, @"range": [NSValue valueWithRange: dlRange]}];
+ 
     NSString* prevString = [self.processingString substringToIndex:index];
     NSString* newString = [NSString stringWithFormat:@"%@%@ ", prevString, autoCompleteString];
     
@@ -172,6 +178,52 @@
     [self processString:newString];
 }
 
-#pragma mark -
+#pragma mark - User Define Method
 
+- (void)updateTextView:(UITextView *)textView changeTextInRange:(NSRange)range replacementText:(NSString *)text
+{
+    NSLog(@"textView.text:%@ \n range:%@,text:%@ ",textView.text, NSStringFromRange(range), text);
+    NSString *tstString = textView.text;
+    NSRange hotWordRange;
+    NSDictionary *dict;
+    for (dict in self.rangesOfSelectedHotWords) {
+        hotWordRange = [[dict objectForKey:@"range"] rangeValue];
+        NSRange intersection = NSIntersectionRange(hotWordRange, range);
+        NSLog(@"hotWordRange :%@ \n intersection:%@",NSStringFromRange(hotWordRange),NSStringFromRange(intersection));
+        if (intersection.length <= 0)
+        {
+            NSLog(@"Ranges do not intersect");
+            
+        }
+        else
+        {
+            NSLog(@"Intersection = %@", NSStringFromRange(intersection));
+            NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc]initWithString:tstString];
+            
+            [attributedString removeAttribute:NSBackgroundColorAttributeName range:hotWordRange];
+            [attributedString removeAttribute:NSForegroundColorAttributeName range:hotWordRange];
+            NSString *result =  [tstString stringByReplacingCharactersInRange:hotWordRange withString:@""];
+            
+            textView.text = result;
+            NSLog(@"----textView.text:%@ \n \n tstString:%@, \n result:%@",textView.text, tstString, result);
+            
+            [self.rangesOfSelectedHotWords removeObject:dict];
+            
+            NSRange rangeOfRemainingHotWord;
+            for (NSDictionary *dict in self.rangesOfSelectedHotWords) {
+                rangeOfRemainingHotWord = [[dict objectForKey:@"range"] rangeValue];
+                [attributedString addAttribute:NSBackgroundColorAttributeName
+                                         value:[UIColor redColor]
+                                         range:rangeOfRemainingHotWord];
+                [attributedString addAttribute:NSForegroundColorAttributeName
+                                         value:[UIColor whiteColor]
+                                         range:rangeOfRemainingHotWord];
+            }
+            
+            textView.attributedText = attributedString;
+        }
+    }
+}
 @end
+
+
